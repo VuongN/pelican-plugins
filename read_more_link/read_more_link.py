@@ -11,6 +11,7 @@ For more information, please visit: http://vuongnguyen.com/creating-inline-read-
 
 from pelican import signals, contents
 from pelican.utils import truncate_html_words
+from pelican.generators import ArticlesGenerator
 
 try:
     from lxml.html import fragment_fromstring, fragments_fromstring, tostring
@@ -76,5 +77,17 @@ def insert_read_more_link(instance):
         instance._summary = insert_into_last_element(summary, read_more_link)
 
 
+def run_plugin(generators):
+    for generator in generators:
+        if isinstance(generator, ArticlesGenerator):
+            for article in generator.articles:
+                insert_read_more_link(article)
+
+
 def register():
-    signals.content_object_init.connect(insert_read_more_link)
+    try:
+        signals.all_generators_finalized.connect(run_plugin)
+    except AttributeError:
+        # NOTE: This may result in #314 so shouldn't really be relied on
+        # https://github.com/getpelican/pelican-plugins/issues/314
+        signals.content_object_init.connect(insert_read_more_link)
